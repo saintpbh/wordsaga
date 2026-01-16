@@ -15,20 +15,34 @@ export const WordMode: React.FC<WordModeProps> = ({ unit, onBack }) => {
     const { words, id: unitId } = unit;
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
-    const [contextSentence, setContextSentence] = useState<string>('');
+    const [sentences, setSentences] = useState<string[]>([]);
     const [showBossBattle, setShowBossBattle] = useState(false);
     const { markWordKnown, addXp } = useGameStore();
 
-    const currentWord = words[currentIndex];
-    const isFinished = currentIndex >= words.length;
+    const currentWord = unit.words[currentIndex];
+    const isFinished = currentIndex >= unit.words.length;
 
     useEffect(() => {
-        if (!currentWord) return;
-        // Find sentence containing the word (case-insensitive)
-        const sentences = unit.story.content.match(/[^.!?]+[.!?]+/g) || [];
-        const found = sentences.find(s => s.toLowerCase().includes(currentWord.word.toLowerCase()));
-        setContextSentence(found || `Example sentence for ${currentWord.word}.`);
-    }, [currentWord, unit]);
+        if (unit.story) {
+            const s = unit.story.content.match(/[^.!?]+[.!?]+/g) || [];
+            setSentences(s);
+        } else {
+            // Fallback: Use examples from words
+            const s = unit.words.map(w => w.example || `The word is ${w.word}.`);
+            setSentences(s);
+        }
+    }, [unit]);
+
+    const getContextSentence = () => {
+        if (!currentWord) return "";
+        // If story exists, find sentence containing the word
+        if (unit.story) {
+            const sentence = sentences.find(s => s.toLowerCase().includes(currentWord.word.toLowerCase()));
+            return sentence || `Context for "${currentWord.word}" not found in story.`;
+        }
+        // If no story, return the word's example
+        return currentWord.example || `No example available for "${currentWord.word}".`;
+    };
 
     const handleNext = (known: boolean) => {
         if (known) {
@@ -74,10 +88,12 @@ export const WordMode: React.FC<WordModeProps> = ({ unit, onBack }) => {
         );
     }
 
+    const contextSentence = getContextSentence();
+
     // Example: "He wants to [Protect] the environment." -> "He wants to [?????] the environment."
     const maskedSentence = contextSentence.replace(
         new RegExp(`\\b${currentWord.word}\\b`, 'gi'),
-        '[ ????? ]'
+        '[ ??? ]'
     );
 
     // Clean sentence for TTS (remove brackets if any remained from regex)
@@ -105,8 +121,8 @@ export const WordMode: React.FC<WordModeProps> = ({ unit, onBack }) => {
                         </h2>
 
                         <div className="bg-gray-800 p-4 rounded border border-gray-600 w-full">
-                            <p className="text-neon-lime text-xs text-center uppercase mb-1">HINT (Definition)</p>
-                            <p className="text-sm text-gray-300 text-center italic">"{currentWord.definition}"</p>
+                            <p className="text-neon-lime text-xs text-center uppercase mb-1">HINT (Meaning)</p>
+                            <p className="text-lg text-gray-300 text-center font-bold text-white">{currentWord.meaning}</p>
                         </div>
 
                         <p className="mt-8 text-neon-lime text-xs animate-pulse absolute bottom-8">PRESS TO REVEAL</p>

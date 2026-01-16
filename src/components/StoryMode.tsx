@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, BookOpen } from 'lucide-react';
 import type { Unit } from '../data/level1';
 import { useGameStore } from '../store/gameStore';
 
@@ -19,40 +19,60 @@ export const StoryMode: React.FC<StoryModeProps> = ({ unit, onBack }) => {
 
     useEffect(() => {
         // Parse the story content: "Text [Answer] Text" -> segments and answers
+        const content = unit.story?.content || "Story content missing.";
         const regex = /\[(.*?)\]/g;
-        const parts = unit.story.content.split(regex);
+        const parts = content.split(regex);
 
         setSegments(parts);
     }, [unit]);
 
     // Current logical step: 
     // 0 -> Intro text
-    // 1 -> Blank 1
+    // 1 -> Blank 1 (Answer Step)
     // 2 -> Text after blank 1
     // ...
-    // We only prompt input when the segment would be an answer.
-    // Actually, split result: "Minjun is a ", "Brave", " student."
-    // Even indices are text, Odd indices are answers (if starts with text).
 
-    const isAnswerStep = currentSegmentIndex % 2 !== 0; // Assuming text starts first
+    // Distractor Generation Logic
+    // We need 3 options total: 1 correct, 2 distractors.
+    const [options, setOptions] = useState<string[]>([]);
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!isAnswerStep) return;
+    // Initialize options when entering an answer step
+    useEffect(() => {
+        if (!segments || segments.length === 0) return;
+        if (currentSegmentIndex >= segments.length) return;
+
+        const isAnswerStep = currentSegmentIndex % 2 !== 0;
+        if (isAnswerStep) {
+            const targetWord = segments[currentSegmentIndex];
+            if (!targetWord) return;
+
+            // Pick 2 random words from the same unit that are NOT the target word
+            const otherWords = unit.words.filter(w => w.word.toLowerCase() !== targetWord.toLowerCase());
+            const shuffledOther = otherWords.sort(() => 0.5 - Math.random()).slice(0, 2).map(w => w.word);
+
+            // Combine and shuffle
+            const allOptions = [targetWord, ...shuffledOther].sort(() => 0.5 - Math.random());
+            setOptions(allOptions);
+        }
+    }, [currentSegmentIndex, segments, unit]);
+
+    const isAnswerStep = currentSegmentIndex % 2 !== 0;
+
+    const handleOptionClick = (selectedWord: string) => {
+        if (!isAnswerStep || feedback !== 'neutral') return;
 
         const targetWord = segments[currentSegmentIndex];
 
-        if (userInput.toLowerCase().trim() === targetWord.toLowerCase().trim()) {
+        if (selectedWord.toLowerCase().trim() === targetWord.toLowerCase().trim()) {
             setFeedback('correct');
-            addXp(50); // Big reward
+            addXp(50);
             setTimeout(() => {
                 setFeedback('neutral');
-                setUserInput('');
                 setCurrentSegmentIndex(prev => prev + 1);
             }, 1000);
         } else {
             setFeedback('wrong');
-            setTimeout(() => setFeedback('neutral'), 500);
+            setTimeout(() => setFeedback('neutral'), 800);
         }
     };
 
@@ -61,6 +81,21 @@ export const StoryMode: React.FC<StoryModeProps> = ({ unit, onBack }) => {
             setCurrentSegmentIndex(prev => prev + 1);
         }
     };
+
+    const renderStoryText = () => {
+        return (
+            <p className="text-lg leading-relaxed text-white text-left font-sans">
+                {segments.map((seg, idx) => {
+                    if (idx % 2 !== 0) { // This is an answer segment
+                        return <span key={idx} className="text-neon-green font-bold mx-1">{seg}</span>;
+                    }
+                    return <span key={idx}>{seg}</span>;
+                })}
+            </p>
+        );
+    };
+
+    const storyTranslation = unit.story?.translation || "No translation available.";
 
     const isFinished = currentSegmentIndex >= segments.length;
 
@@ -76,10 +111,20 @@ export const StoryMode: React.FC<StoryModeProps> = ({ unit, onBack }) => {
                     <div className="text-6xl mt-6 animate-bounce">🏆</div>
                 </motion.div>
 
-                <div className="retro-card p-6 bg-navy-900 max-w-2xl mx-auto mb-8 border-neon-cyan">
-                    <p className="text-sm leading-loose text-white text-left font-sans">{unit.story.translation}</p>
+                {/* Story Panel */}
+                <div className="bg-gray-800/80 p-6 rounded-xl border border-gray-600 mb-6 backdrop-blur-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                        <BookOpen size={100} />
+                    </div>
+                    <div className="relative z-10">
+                        <div className="mb-4">
+                            {renderStoryText()}
+                        </div>
+                        <div className="mt-4 p-4 bg-black/40 rounded-lg border-l-4 border-neon-blue">
+                            <p className="text-sm leading-loose text-white text-left font-sans">{storyTranslation}</p>
+                        </div>
+                    </div>
                 </div>
-
                 <button
                     onClick={onBack}
                     className="retro-btn bg-neon-pink text-white py-4 px-8"
@@ -129,29 +174,27 @@ export const StoryMode: React.FC<StoryModeProps> = ({ unit, onBack }) => {
             >
                 <div className="max-w-4xl mx-auto h-full flex flex-col justify-between">
                     <div className="text-neon-pink font-bold mb-4 uppercase tracking-widest text-sm border-b-2 border-neon-pink w-fit pb-1">
-                        Story Quest: {unit.story.title}
+                        Story Quest: {unit.story?.title || "Unknown Quest"}
                     </div>
 
                     {isAnswerStep ? (
                         <div className="flex flex-col gap-4">
-                            <p className="text-white text-sm mb-2 blinking-cursor">COMMAND: ENTER MISSING DATA</p>
-                            <form onSubmit={handleSubmit} className="flex gap-4">
-                                <input
-                                    type="text"
-                                    value={userInput}
-                                    onChange={(e) => setUserInput(e.target.value)}
-                                    className="flex-1 bg-black border-4 border-double border-neon-lime p-4 text-xl outline-none text-neon-lime focus:shadow-[0_0_15px_#39FF14] transition-all font-pixel placeholder-gray-700"
-                                    placeholder="Type word..."
-                                    autoFocus
-                                />
-                                <button
-                                    type="submit"
-                                    className="retro-btn bg-gray-800 text-neon-lime px-8 flex items-center gap-2"
-                                >
-                                    ATTACK <Send size={20} />
-                                </button>
-                            </form>
-                            <div className="text-xs text-gray-500 mt-2">HINT: {segments[currentSegmentIndex][0]}...</div>
+                            <p className="text-white text-sm mb-2 blinking-cursor">COMMAND: CHOOSE THE MISSING DATA</p>
+
+                            {/* Options Container */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                {options.map((opt, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => handleOptionClick(opt)}
+                                        className="retro-btn bg-gray-800 border-neon-cyan text-neon-cyan py-4 px-2 hover:bg-neon-cyan hover:text-black text-lg transition-all active:scale-95"
+                                    >
+                                        {opt}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="text-xs text-gray-500 mt-2">HINT: Context Clue Detected...</div>
                         </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-700 cursor-pointer hover:border-white transition-colors" onClick={handleNextText}>

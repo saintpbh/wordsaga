@@ -1,23 +1,30 @@
 
 export interface Word {
     word: string;
-    definition: string;
+    definition?: string;
     meaning: string;
+    example?: string;
+    wrongMeanings?: string[];
 }
 
 export interface Unit {
     id: string;
+    title?: string;
     words: Word[];
-    story: {
+    story?: {
         title: string;
         content: string;
         translation: string;
-    };
+    } | null;
 }
 
 export interface LevelData {
-    level: number;
+    id?: string;
+    level?: number;
+    title?: string;
+    description?: string;
     units: Unit[];
+    story?: any;
 }
 
 export const level1Data: LevelData = {
