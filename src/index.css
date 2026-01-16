@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+@theme {
+    --color-neon-green: #00FF00;
+    --color-neon-pink: #FF007F;
+    --color-neon-cyan: #00F3FF;
+    --color-neon-lime: #39FF14;
+    --color-gold: #FFD700;
+    --color-navy-900: #0A0A20;
+
+    --font-pixel: "Press Start 2P", cursive;
+}
+
+:root {
+    font-family: 'Press Start 2P', cursive;
+}
+
+body {
+    background-color: var(--color-navy-900);
+    color: white;
+    overflow: hidden;
+    background-image:
+        linear-gradient(rgba(0, 243, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px);
+    background-size: 40px 40px;
+}
+
+/* CRT Scanline Effect */
+body::after {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    z-index: 50;
+    background-size: 100% 2px, 3px 100%;
+    pointer-events: none;
+}
+
+/* Retro UI Utilities */
+@layer components {
+    .retro-btn {
+        border: 4px double white;
+        box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.5);
+        text-transform: uppercase;
+        transition: all 0.2s;
+    }
+
+    .retro-btn:hover {
+        color: var(--color-neon-cyan);
+        border-color: var(--color-neon-cyan);
+        box-shadow: 0 0 10px var(--color-neon-cyan);
+    }
+
+    .retro-btn:active {
+        transform: translateY(4px);
+        box-shadow: none;
+    }
+
+    .retro-card {
+        background-color: #1f2937;
+        /* bg-gray-800 */
+        border: 4px double white;
+        box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 0.5);
+    }
+
+    .pixel-text {
+        text-shadow: 2px 2px 0px #000;
+    }
+
+    .glitch-text {
+        position: relative;
+        animation: glitch 1s infinite alternate;
+    }
+}
+
+/* 3D Transform Utilities */
+@layer utilities {
+    .perspective-1000 {
+        perspective: 1000px;
+    }
+
+    .preserve-3d {
+        transform-style: preserve-3d;
+    }
+
+    .backface-hidden {
+        backface-visibility: hidden;
+    }
+
+    .rotate-y-180 {
+        transform: rotateY(180deg);
+    }
+}
+
+@keyframes glitch {
+    0% {
+        text-shadow: 2px 2px #ff007f, -2px -2px #00f3ff;
+    }
+
+    25% {
+        text-shadow: -2px 2px #ff007f, 2px -2px #00f3ff;
+    }
+
+    50% {
+        text-shadow: 2px -2px #ff007f, -2px 2px #00f3ff;
+    }
+
+    75% {
+        text-shadow: -2px -2px #ff007f, 2px 2px #00f3ff;
+    }
+
+    100% {
+        text-shadow: 2px 2px #ff007f, -2px -2px #00f3ff;
+    }
+}
