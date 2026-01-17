@@ -15,6 +15,7 @@ export interface Unit {
         title: string;
         content: string;
         translation: string;
+        image?: string;
     } | null;
 }
 
