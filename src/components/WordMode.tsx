@@ -50,7 +50,12 @@ export const WordMode: React.FC<WordModeProps> = ({ unit, onBack }) => {
             addXp(10);
         }
         setIsFlipped(false);
-        setCurrentIndex(prev => prev + 1);
+
+        // Delay changing the word until the card has flipped halfway (90deg)
+        // User requested 2000ms to ensure the answer is hidden.
+        setTimeout(() => {
+            setCurrentIndex(prev => prev + 1);
+        }, 2000);
     };
 
     const playAudio = (e: React.MouseEvent, text: string) => {

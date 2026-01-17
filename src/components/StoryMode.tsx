@@ -57,7 +57,65 @@ export const StoryMode: React.FC<StoryModeProps> = ({ unit, onBack }) => {
         }
     }, [currentSegmentIndex, segments, unit]);
 
+    // Sound Effect Helper
+    const playSound = (type: 'correct' | 'wrong') => {
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioContext) return;
+
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        const now = ctx.currentTime;
+
+        if (type === 'correct') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc.start(now);
+            osc.stop(now + 0.3);
+        } else if (type === 'wrong') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+            osc.start(now);
+            osc.stop(now + 0.3);
+        }
+    };
+
     const isAnswerStep = currentSegmentIndex % 2 !== 0;
+
+    // Auto-advance text segments (skip "Click to Proceed")
+    useEffect(() => {
+        if (!segments || segments.length === 0) return;
+
+        // If it's a text segment (not an answer step) and not finished, advance automatically
+        // But we need to ensure we don't advance past the end immediately or skip visual updates too fast.
+        // Actually, for "visual novel" feel, usually text prints then waits. 
+        // But the user specifically asked "Without click to process button, just go next".
+        // This implies they want to see the Question immediately with the text.
+
+        if (!isAnswerStep && currentSegmentIndex < segments.length) {
+            // Check if it's the LAST segment (just text ending). If so, maybe keep it?
+            // But usually story mode ends with "Mission Complete".
+            // So if !isAnswerStep, we increment.
+
+            // We use a small timeout to allow state to settle or visual transition if needed, 
+            // but effectively instant for the user.
+            const timer = setTimeout(() => {
+                setCurrentSegmentIndex(prev => prev + 1);
+            }, 50); // Very short delay to ensure rendering happens then moves on
+
+            return () => clearTimeout(timer);
+        }
+    }, [currentSegmentIndex, isAnswerStep, segments.length]);
 
     const handleOptionClick = (selectedWord: string) => {
         if (!isAnswerStep || feedback !== 'neutral') return;
@@ -66,6 +124,7 @@ export const StoryMode: React.FC<StoryModeProps> = ({ unit, onBack }) => {
 
         if (selectedWord.toLowerCase().trim() === targetWord.toLowerCase().trim()) {
             setFeedback('correct');
+            playSound('correct');
             addXp(50);
             setTimeout(() => {
                 setFeedback('neutral');
@@ -73,13 +132,8 @@ export const StoryMode: React.FC<StoryModeProps> = ({ unit, onBack }) => {
             }, 1000);
         } else {
             setFeedback('wrong');
+            playSound('wrong');
             setTimeout(() => setFeedback('neutral'), 800);
-        }
-    };
-
-    const handleNextText = () => {
-        if (!isAnswerStep) {
-            setCurrentSegmentIndex(prev => prev + 1);
         }
     };
 
@@ -173,7 +227,10 @@ export const StoryMode: React.FC<StoryModeProps> = ({ unit, onBack }) => {
                 <div className="z-10 max-w-4xl w-full text-2xl md:text-3xl leading-relaxed font-medium">
                     {/* Render accumulated text up to current point */}
                     {segments.map((seg, idx) => {
-                        if (idx > currentSegmentIndex) return null;
+                        // Allow seeing the next sentence context when answering (isAnswerStep)
+                        // If currentSegmentIndex is 1 (Answer), show up to index 2 (Context after answer)
+                        const visibleLimit = currentSegmentIndex + (isAnswerStep ? 1 : 0);
+                        if (idx > visibleLimit) return null;
 
                         // Current Active Blank
                         if (idx === currentSegmentIndex && isAnswerStep) {
@@ -243,23 +300,9 @@ export const StoryMode: React.FC<StoryModeProps> = ({ unit, onBack }) => {
                                     </div>
                                 </motion.div>
                             ) : (
-                                <motion.button
-                                    key="continue"
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.9 }}
-                                    onClick={handleNextText}
-                                    className="w-full max-w-sm group cursor-pointer"
-                                >
-                                    <div className="bg-gray-800/50 border border-gray-600 p-8 rounded-xl group-hover:border-white/50 transition-all flex flex-col items-center justify-center gap-3">
-                                        <div className="text-neon-green animate-bounce">
-                                            <Send size={24} />
-                                        </div>
-                                        <span className="text-sm font-mono text-gray-400 group-hover:text-white transition-colors tracking-widest">
-                                            CLICK TO PROCEED
-                                        </span>
-                                    </div>
-                                </motion.button>
+                                <div className="text-gray-500 text-sm animate-pulse">
+                                    PROCESSING DATA STREAM...
+                                </div>
                             )}
                         </AnimatePresence>
                     </div>
