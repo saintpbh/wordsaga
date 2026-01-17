@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Send, BookOpen } from 'lucide-react';
+import { TypewriterText } from './TypewriterText';
 import type { Unit } from '../data/level1';
 import { useGameStore } from '../store/gameStore';
 
@@ -136,73 +137,134 @@ export const StoryMode: React.FC<StoryModeProps> = ({ unit, onBack }) => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-900 text-white p-4 relative flex flex-col">
-            <button onClick={onBack} className="absolute top-8 left-8 text-white hover:text-neon-green z-10">
-                <ArrowLeft size={32} />
-            </button>
+        <div className="h-screen bg-gray-900 text-white relative flex flex-col overflow-hidden">
+            {/* Header / Back Button - Absolute */}
+            <div className="absolute top-0 left-0 right-0 p-4 z-50 flex items-center justify-between pointer-events-none">
+                <button
+                    onClick={onBack}
+                    className="text-white/50 hover:text-white pointer-events-auto transition-colors bg-black/20 p-2 rounded-full backdrop-blur-sm"
+                >
+                    <ArrowLeft size={24} />
+                </button>
+                <div className="bg-black/40 backdrop-blur-md px-4 py-1 rounded-full border border-white/10 text-xs font-mono text-neon-green">
+                    STORY SEGMENT: {currentSegmentIndex + 1} / {segments.length}
+                </div>
+            </div>
 
-            {/* Visual Novel Scene */}
-            <div className="flex-1 flex items-center justify-center p-8 relative overflow-hidden">
-                {/* Simple Background Effect */}
+            {/* Visual Novel Scene - Fixed Top 60% */}
+            <div className="h-[60%] relative flex items-center justify-center p-8 overflow-y-auto custom-scrollbar">
+                {/* Background Effect */}
                 <div className="absolute inset-0 bg-gradient-to-b from-gray-800 to-gray-900 opacity-50 z-0"></div>
-                {feedback === 'correct' && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 2 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none"
-                    >
-                        <div className="text-9xl text-gold opacity-20 font-bold">CRITICAL HIT!</div>
-                    </motion.div>
-                )}
 
-                <div className="z-10 max-w-3xl w-full text-2xl leading-relaxed">
+                {/* Critical Hit Effect */}
+                <AnimatePresence>
+                    {feedback === 'correct' && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 2 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
+                        >
+                            <div className="text-6xl md:text-9xl text-gold opacity-20 font-bold tracking-tighter">PERFECT</div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <div className="z-10 max-w-4xl w-full text-2xl md:text-3xl leading-relaxed font-medium">
                     {/* Render accumulated text up to current point */}
                     {segments.map((seg, idx) => {
                         if (idx > currentSegmentIndex) return null;
-                        if (idx === currentSegmentIndex && isAnswerStep) return <span key={idx} className="bg-gray-700 px-4 py-1 rounded min-w-[100px] inline-block mx-1 border-b-2 border-neon-green animate-pulse">?</span>;
-                        if (idx % 2 !== 0) return <span key={idx} className="text-neon-green font-bold mx-1">{seg}</span>;
-                        return <span key={idx}>{seg}</span>;
+
+                        // Current Active Blank
+                        if (idx === currentSegmentIndex && isAnswerStep) {
+                            return (
+                                <motion.span
+                                    key={idx}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="bg-gray-800 px-4 py-1 rounded-md min-w-[120px] inline-block mx-2 border-b-4 border-neon-green/50 animate-pulse text-neon-green text-center align-middle"
+                                >
+                                    ?
+                                </motion.span>
+                            );
+                        }
+
+                        // Answered Blank (Green)
+                        if (idx % 2 !== 0) {
+                            return <span key={idx} className="text-neon-green font-bold mx-1 drop-shadow-lg">{seg}</span>;
+                        }
+
+                        // Normal Text
+                        return <span key={idx} className="text-gray-100">{seg}</span>;
                     })}
                 </div>
             </div>
 
-            {/* Control Area */}
-            <motion.div
-                className={`bg-navy-900 border-t-4 border-white p-8 relative z-20 shadow-[0_-10px_0_0_rgba(0,0,0,0.5)]`}
-                animate={feedback === 'wrong' ? { x: [-10, 10, -10, 10, 0] } : {}}
-            >
-                <div className="max-w-4xl mx-auto h-full flex flex-col justify-between">
-                    <div className="text-neon-pink font-bold mb-4 uppercase tracking-widest text-sm border-b-2 border-neon-pink w-fit pb-1">
-                        Story Quest: {unit.story?.title || "Unknown Quest"}
+            {/* Control Area - Fixed Bottom 40% */}
+            <div className="h-[40%] bg-navy-900 border-t-2 border-neon-blue/30 relative z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] flex flex-col">
+                <div className="max-w-4xl mx-auto w-full h-full p-6 flex flex-col">
+                    {/* Quest Title */}
+                    <div className="flex items-center gap-3 mb-6 opacity-70">
+                        <div className="h-1 w-8 bg-neon-pink"></div>
+                        <span className="text-xs font-mono tracking-[0.2em] text-neon-pink uppercase">
+                            Mission: {unit.story?.title || "Unknown Quest"}
+                        </span>
                     </div>
 
-                    {isAnswerStep ? (
-                        <div className="flex flex-col gap-4">
-                            <p className="text-white text-sm mb-2 blinking-cursor">COMMAND: CHOOSE THE MISSING DATA</p>
+                    {/* Interaction Area - Centered */}
+                    <div className="flex-1 flex items-center justify-center w-full">
+                        <AnimatePresence mode="wait">
+                            {isAnswerStep ? (
+                                <motion.div
+                                    key="options"
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -20 }}
+                                    className="w-full flex flex-col gap-4"
+                                >
+                                    <p className="text-center text-xs text-neon-cyan/80 font-mono tracking-widest mb-2 animate-pulse">
+                                        &lt; SELECT SYSTEM DETECTED &gt;
+                                    </p>
 
-                            {/* Options Container */}
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                {options.map((opt, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => handleOptionClick(opt)}
-                                        className="retro-btn bg-gray-800 border-neon-cyan text-neon-cyan py-4 px-2 hover:bg-neon-cyan hover:text-black text-lg transition-all active:scale-95"
-                                    >
-                                        {opt}
-                                    </button>
-                                ))}
-                            </div>
-
-                            <div className="text-xs text-gray-500 mt-2">HINT: Context Clue Detected...</div>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-700 cursor-pointer hover:border-white transition-colors" onClick={handleNextText}>
-                            <p className="text-neon-cyan animate-pulse text-sm">PRESS TO CONTINUE &gt;&gt;</p>
-                        </div>
-                    )}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                                        {options.map((opt, idx) => (
+                                            <button
+                                                key={idx}
+                                                onClick={() => handleOptionClick(opt)}
+                                                className="group relative bg-black/40 border border-neon-cyan/30 text-neon-cyan py-4 px-6 
+                                                         hover:bg-neon-cyan hover:text-black hover:border-neon-cyan 
+                                                         active:scale-95 transition-all duration-200 ease-out
+                                                         flex items-center justify-center overflow-hidden rounded-sm"
+                                            >
+                                                <span className="absolute left-0 top-0 bottom-0 w-1 bg-neon-cyan transition-all group-hover:w-full opacity-10"></span>
+                                                <span className="relative font-bold text-lg tracking-wide">{opt}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </motion.div>
+                            ) : (
+                                <motion.button
+                                    key="continue"
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.9 }}
+                                    onClick={handleNextText}
+                                    className="w-full max-w-sm group cursor-pointer"
+                                >
+                                    <div className="bg-gray-800/50 border border-gray-600 p-8 rounded-xl group-hover:border-white/50 transition-all flex flex-col items-center justify-center gap-3">
+                                        <div className="text-neon-green animate-bounce">
+                                            <Send size={24} />
+                                        </div>
+                                        <span className="text-sm font-mono text-gray-400 group-hover:text-white transition-colors tracking-widest">
+                                            CLICK TO PROCEED
+                                        </span>
+                                    </div>
+                                </motion.button>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 </div>
-            </motion.div>
+            </div>
         </div>
     );
 };

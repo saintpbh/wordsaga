@@ -174,6 +174,19 @@ export const useGameStore = create<GameState>()(
 
             advanceLevel: () => {
                 set((state) => ({ level: state.level + 1 }));
+            },
+
+            reset: () => {
+                set({
+                    xp: 0,
+                    level: 1,
+                    title: '중1 용사',
+                    unitStatuses: [],
+                    inventory: [],
+                    srsStats: {},
+                    myDungeon: { trapWords: [], bossId: null, isVerified: false },
+                    heroEvolutions: {},
+                });
             }
         }),
         {
