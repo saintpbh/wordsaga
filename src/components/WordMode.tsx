@@ -95,11 +95,7 @@ export const WordMode: React.FC<WordModeProps> = ({ unit, onBack }) => {
 
     const contextSentence = getContextSentence();
 
-    // Example: "He wants to [Protect] the environment." -> "He wants to [?????] the environment."
-    const maskedSentence = contextSentence.replace(
-        new RegExp(`\\b${currentWord.word}\\b`, 'gi'),
-        '[ ??? ]'
-    );
+
 
     // Clean sentence for TTS (remove brackets if any remained from regex)
     const cleanSentence = contextSentence.replace(/\[/g, '').replace(/\]/g, '');
@@ -126,22 +122,18 @@ export const WordMode: React.FC<WordModeProps> = ({ unit, onBack }) => {
                     >
                         {/* Front */}
                         <div className="absolute w-full h-full backface-hidden retro-card bg-navy-900 flex flex-col items-center justify-center p-8 group hover:border-neon-pink transition-colors rounded-2xl border-2 border-gray-700 shadow-2xl">
-                            <h2 className="text-2xl md:text-3xl font-bold mb-8 text-white leading-relaxed text-center font-sans tracking-wide drop-shadow-lg">
-                                {maskedSentence}
+                            <p className="text-neon-lime text-sm uppercase tracking-widest mb-6">GUESS THE WORD</p>
+                            <h2 className="text-3xl md:text-5xl font-bold mb-8 text-white leading-relaxed text-center font-sans tracking-wide drop-shadow-lg">
+                                {currentWord.meaning}
                             </h2>
-
-                            <div className="bg-gray-800/80 p-4 rounded-xl border border-gray-600/50 w-full backdrop-blur-md">
-                                <p className="text-neon-lime text-[10px] text-center uppercase mb-2 tracking-wider">HINT (Meaning)</p>
-                                <p className="text-lg text-white text-center font-bold">{currentWord.meaning}</p>
-                            </div>
 
                             <p className="mt-8 text-neon-lime/50 text-xs animate-pulse absolute bottom-8 tracking-widest">TAP TO FLIP</p>
                         </div>
 
                         {/* Back */}
                         <div className="absolute w-full h-full backface-hidden retro-card bg-navy-900 flex flex-col items-center justify-center p-8 rotate-y-180 border-2 border-gold rounded-2xl shadow-[0_0_30px_rgba(255,215,0,0.1)]">
-                            <h3 className="text-4xl md:text-5xl font-bold text-white mb-4 pixel-text text-center">{currentWord.word}</h3>
-                            <p className="text-xl text-gold mb-8 font-bold tracking-wide">{currentWord.meaning}</p>
+                            <h3 className="text-4xl md:text-5xl font-bold text-white mb-2 pixel-text text-center">{currentWord.word}</h3>
+                            <p className="text-xl text-gray-400 mb-6 font-bold tracking-wide">{currentWord.meaning}</p>
 
                             <div className="bg-gray-800/80 p-6 rounded-xl border border-gray-600/50 w-full mb-6 backdrop-blur-md">
                                 <p className="text-gray-200 text-lg text-center font-sans leading-relaxed italic">
@@ -150,7 +142,7 @@ export const WordMode: React.FC<WordModeProps> = ({ unit, onBack }) => {
                             </div>
 
                             <button
-                                onClick={(e) => playAudio(e, cleanSentence)}
+                                onClick={(e) => playAudio(e, currentWord.word)}
                                 className="p-4 bg-gray-700/50 rounded-full hover:bg-white hover:text-black transition-all border border-white/10 group"
                             >
                                 <Volume2 size={24} className="group-hover:scale-110 transition-transform" />
